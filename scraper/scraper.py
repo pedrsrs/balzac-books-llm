@@ -3,7 +3,7 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 
 AUTHOR_NAME = "Honoré de Balzac"
-#BOOKS_DIRECTORY = "/books"
+BOOKS_DIRECTORY = "./books"
 
 class GutenbergScraper(scrapy.Spider):
     name = 'gutenberg_scraper'
@@ -42,7 +42,7 @@ class GutenbergScraper(scrapy.Spider):
     def save_book_content(self, response, title):
         title = title.lower().replace(" ", "_")
 
-        filename = f"{title}.txt"
+        filename = f"{BOOKS_DIRECTORY}/{title}.txt"
 
         with open(filename, 'w', encoding='utf-8') as file:
             file.write(response.text)

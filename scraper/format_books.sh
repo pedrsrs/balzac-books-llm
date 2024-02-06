@@ -1,39 +1,58 @@
 #!/bin/bash
 
-folder_path="./books"
-cd $folder_path
+cd ./books
 
-for file in *.txt; do
-    
-    if [ -e "$file" ]; then
-
-        end_marker_line=$(awk '/\*\*\* END OF THE PROJECT GUTENBERG EBOOK/{print NR; exit}' "$file")
-
-        if [ -n "$end_marker_line" ]; then
-            head -n "$((end_marker_line - 1))" "$file" > "$file.tmp"
-            mv "$file.tmp" "$file"
-
-            file_title=$(basename "$file" | sed 's/\.txt$//')
-            
-            formatted_title=$(echo "$file_title" | tr '[:lower:]' '[:upper:]' | sed 's/_/ /g')
-            echo $formatted_title
-            last_occurrence_line=$(awk -v pattern="$formatted_title" 'BEGIN{IGNORECASE=1} {if ($0 ~ pattern) {pos=match($0, pattern); if (pos) lastpos=NR}} END{print lastpos}' "$file")
-            echo $last_occurrence_line
-
-            if [ -n "$last_occurrence_line" ]; then
-                tail -n +"$last_occurrence_line" "$file" | sed 's/\.txt//' > "$file.tmp"
-                mv "$file.tmp" "$file"
-                echo "Processed: $file"
-            else
-                echo "Error: Unable to find the last occurrence of the formatted title in $file"
-            fi
-
+main() {
+    for file in *.txt; do
+        if [ -e "$file" ]; then
+            format_end_of_book "$file"
+            format_addendum "$file"
         else
-            echo "Error: Unable to find the end marker in $file"
+            echo "Warning: $file does not exist"
         fi
-    else
-        echo "Warning: $file does not exist"
-    fi
-done
+    done
 
-echo "Script completed"
+    concatenate_files
+}
+
+format_addendum() {
+    file="$1"
+
+    addendum_line=$(awk -v pattern="ADDENDUM" 'BEGIN{IGNORECASE=1} {if ($0 ~ pattern) {pos=match($0, pattern); if (pos) lastpos=NR}} END{print lastpos}' "$file")
+    
+    if [ -n "$addendum_line" ]; then
+        head -n "$((addendum_line - 1))" "$file" > "$file.tmp"
+        mv "$file.tmp" "$file"
+    fi
+}
+
+format_beggining_of_book() {
+    file="$1"
+
+    file_title=$(basename "$file" | sed 's/\.txt$//')
+            
+    formatted_title=$(echo "$file_title" | tr '[:lower:]' '[:upper:]' | sed 's/_/ /g')
+    last_occurrence_line=$(awk -v pattern="$formatted_title" 'BEGIN{IGNORECASE=1} {if ($0 ~ pattern) {pos=match($0, pattern); if (pos) lastpos=NR}} END{print lastpos}' "$file")
+
+    if [ -n "$last_occurrence_line" ]; then
+        tail -n +"$last_occurrence_line" "$file" > "$file.tmp"
+        mv "$file.tmp" "$file"
+    fi
+}
+
+format_end_of_book() {
+    file="$1"
+
+    end_marker_line=$(awk '/\*\*\* END OF THE PROJECT GUTENBERG EBOOK/{print NR; exit}' "$file")
+
+    if [ -n "$end_marker_line" ]; then
+        head -n "$((end_marker_line - 1))" "$file" > "$file.tmp"
+        mv "$file.tmp" "$file"
+    fi
+}
+
+concatenate_files() {
+    cat *.txt > ../balzac_full_books.txt
+}
+
+main
